@@ -1,0 +1,48 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "This project was bootstrapped with Fastify-CLI.",
+  "main": "app.ts",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "npm run build:ts && tsc -p test/tsconfig.json && c8 node --test -r ts-node/register \"test/**/*.ts\"",
+    "start": "npm run build:ts && fastify start -l info dist/app.js",
+    "build:ts": "tsc",
+    "watch:ts": "tsc -w",
+    "dev": "npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
+    "dev:start": "fastify start --ignore-watch=.ts$ -w -l info -P dist/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/autoload": "^6.0.0",
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/passport": "^4.0.2",
+    "@fastify/postgres": "^6.1.0",
+    "@fastify/secure-session": "^8.3.0",
+    "@fastify/sensible": "^6.0.0",
+    "fastify": "^5.11.3",
+    "fastify-cli": "^8.0.0",
+    "fastify-plugin": "^5.0.0",
+    "passport-steam": "^1.0.18",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.5",
+    "@types/passport-steam": "^1.0.6",
+    "@types/pg": "^8.21.0",
+    "c8": "^11.0.0",
+    "concurrently": "^9.0.0",
+    "fastify-tsconfig": "^3.0.0",
+    "ts-node": "^10.4.0",
+    "tsx": "^4.23.11",
+    "typescript": "~5.9.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
