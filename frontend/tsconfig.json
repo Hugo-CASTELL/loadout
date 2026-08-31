@@ -4,10 +4,9 @@
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ],
-  "compilerOptions": { // Just for shadcn
-    "baseUrl": ".", // Just for shadcn
-    "paths": { // Just for shadcn
-      "@/*": ["src/*"] // Just for shadcn
-    } // Just for shadcn
-  } // Just for shadcn
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }
