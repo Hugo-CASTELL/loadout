@@ -36,6 +36,19 @@ export async function runMigrations(pg: any, log?: MigrationLogger) {
     );
     const optional = isOptionalMigration(sql);
 
+    if (optional) {
+      try {
+        await pg.query(sql);
+        await pg.query(
+          'INSERT INTO migrations(name) VALUES ($1)',
+          [file]
+        );
+      } catch (err) {
+        log?.warn(err, `optional migration ${file} skipped`);
+      }
+      continue;
+    }
+
     await pg.query('BEGIN');
 
     try {
@@ -49,10 +62,6 @@ export async function runMigrations(pg: any, log?: MigrationLogger) {
       await pg.query('COMMIT');
     } catch (err) {
       await pg.query('ROLLBACK');
-      if (optional) {
-        log?.warn(err, `optional migration ${file} skipped`);
-        continue;
-      }
       throw err;
     }
   }
