@@ -8,5 +8,5 @@ export default fp(async (fastify) => {
     max: 20
   });
 
-  await runMigrations(fastify.pg);
+  await runMigrations(fastify.pg, fastify.log);
 });
