@@ -1,11 +1,11 @@
 import { type FastifyPluginAsync } from "fastify";
 import "@fastify/passport";
+import "@fastify/postgres";
 import { mapSteamInventoryToAppInventory } from "../../utils/mapping";
 import {fetchSteamApis, isSteamApisHttpError, SteamApisUrls} from "../../utils/steamApis";
 import {SteamApisInventoryResponse} from "../../utils/loadouts_shared_generated";
 import {withAuth} from "../../utils/withAuth";
-
-const CACHE_TTL_MS = 60_000;
+import {findCachedInventory, saveCachedInventory} from "../../db/inventories";
 
 const steam: FastifyPluginAsync = async (fastify): Promise<void> => {
   fastify.get("/inventory",
@@ -13,26 +13,27 @@ const steam: FastifyPluginAsync = async (fastify): Promise<void> => {
     const { steamId } = request.user as { steamId: string };
     request.log.info(`Loading inventory of user ${steamId}...`);
 
-    const cached = fastify.cache.inventories.get(steamId);
-    if (cached) {
-      if(cached.expiresAt > Date.now()){
+    try {
+      const cached = await findCachedInventory(fastify.pg, steamId);
+      if (cached) {
         request.log.info(`Found cached inventory of user ${steamId}...`);
-        return reply.send(cached.inventory);
-      } else {
-        request.log.info(`Found expired cached inventory of user ${steamId}...`);
-        request.log.info(`Clearing the expired cached inventory...`);
-        fastify.cache.inventories.delete(steamId);
+        return reply.send(cached);
       }
+    } catch (error) {
+      request.log.error(error, "failed to read cached steam inventory");
     }
 
     try {
       request.log.info(`Requesting inventory of user ${steamId}...`);
       const rawInventory = await fetchSteamApis<SteamApisInventoryResponse>(SteamApisUrls.inventory(steamId));
       const mappedInventory = mapSteamInventoryToAppInventory(rawInventory);
-      fastify.cache.inventories.set(steamId, {
-        inventory: mappedInventory,
-        expiresAt: Date.now() + CACHE_TTL_MS,
-      });
+
+      try {
+        await saveCachedInventory(fastify.pg, steamId, mappedInventory);
+      } catch (error) {
+        request.log.error(error, "failed to persist cached steam inventory");
+      }
+
       return reply.send(mappedInventory);
     } catch (error) {
       if (isSteamApisHttpError(error)) {

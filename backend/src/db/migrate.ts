@@ -1,7 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-export async function runMigrations(pg: any) {
+type MigrationLogger = {
+  info: (msg: string) => void;
+  warn: (obj: unknown, msg?: string) => void;
+};
+
+function isOptionalMigration(sql: string): boolean {
+  return sql.trimStart().startsWith('-- OPTIONAL');
+}
+
+export async function runMigrations(pg: any, log?: MigrationLogger) {
   const dir = path.join(__dirname, '../../db/migrations');
 
   const sql = await fs.readFile(path.join(dir, '000_migration_table.sql'), 'utf8');
@@ -25,6 +34,20 @@ export async function runMigrations(pg: any) {
       path.join(dir, file),
       'utf8'
     );
+    const optional = isOptionalMigration(sql);
+
+    if (optional) {
+      try {
+        await pg.query(sql);
+        await pg.query(
+          'INSERT INTO migrations(name) VALUES ($1)',
+          [file]
+        );
+      } catch (err) {
+        log?.warn(err, `optional migration ${file} skipped`);
+      }
+      continue;
+    }
 
     await pg.query('BEGIN');
 
